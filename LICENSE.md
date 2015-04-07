@@ -23,3 +23,21 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <http://unlicense.org>
 
+
+
+Notes:
+
+**"This software contains source code provided by NVIDIA Corporation."**
+
+* CUDA<sup>®</sup> belongs NVIDIA<sup>®</sup>. Code for sorting and
+cumulative sum was taken from CUDA<sup>®</sup> samples and belongs to
+NVIDIA<sup>®</sup>. cuBLAS also belongs to NVIDIA<sup>®</sup>. Thank
+them with your money if you plan use it in production.
+
+* Large Average Submatrix also belongs to someone else. Original code
+can be found at https://genome.unc.edu/las/. 
+[Article](http://projecteuclid.org/DPubS?service=UI&version=1.0&verb=Display&handle=euclid.aoas/1254773275)
+will give additional explanation and maybe some clarification on licensing.
+
+Beyond this two exception every other piece of code is released to 
+public domain.
