@@ -141,6 +141,7 @@ void LAS::checkArguments(const double* matrix, uint32_t width, uint32_t height)
     + sizeof(double) * (maxDimension + 2) // lgamma or gammaln
     + sizeof(uint32_t) * invocationsPerBicluster // columns changes
     + sizeof(uint32_t) * invocationsPerBicluster // rows changes
+    + sizeof(uint16_t) * invocationsPerBicluster // invocations permutation
             ;
 
     std::size_t freeMemory, totalMemory;
