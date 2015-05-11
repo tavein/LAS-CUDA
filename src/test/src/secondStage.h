@@ -156,32 +156,36 @@ TEST_F(SecondStage, Works)
     memory.deviceRowSet.copyTo(memory.rowSet);
     memory.deviceColumnSet.copyTo(memory.columnSet);
 
-    for (int j = 0; j < memory.rowSet.width; j++)
-    {
-        for (int i = 0; i < memory.rowSet.height; i++)
-        {
-            EXPECT_EQ(goldRowSet.data[j * memory.rowSet.height + i],
-                    memory.rowSet.data[j * memory.rowSet.height + i]);
-        }
-    }
-
-    for (int j = 0; j < memory.columnSet.width; j++)
-    {
-        for (int i = 0; i < memory.columnSet.height; i++)
-        {
-            EXPECT_EQ(goldColumnSet.data[j * memory.columnSet.height + i],
-                    memory.columnSet.data[j * memory.columnSet.height + i]);
-        }
-    }
-
     Matrix<double> biclusterScores(memory.InvocationsPerBicluster, 1,
             MatrixLocation::Host);
     biclusterScores.allocate();
     memory.deviceBiclusterScores.copyTo(biclusterScores);
-    for (int i = 0; i < memory.InvocationsPerBicluster; i++)
-    {
-        EXPECT_NEAR(goldFinalScore.data[i], biclusterScores.data[i], 1e-10);
-    }
 
+
+    for (int k = 0; k < memory.rowSet.height; k++) {
+        bool found = false;
+        int i;
+        for (i = 0; i < memory.rowSet.height; ++i)
+        {
+            int j;
+            for(j = 0; j < memory.rowSet.width; j++) {
+                if (goldRowSet.data[j * memory.rowSet.height + k] !=
+                    memory.rowSet.data[j * memory.rowSet.height + i]) break;
+            }
+
+            found |= (j == memory.rowSet.width) &&
+                    std::equal(goldColumnSet.data + k*memory.columnSet.height, goldColumnSet.data + (k + 1)*memory.columnSet.height,
+                                memory.columnSet.data + i*memory.columnSet.height);
+            if (found) break;
+        }
+
+        EXPECT_TRUE(found);
+
+        if (found) {
+            EXPECT_NEAR(goldFinalScore.data[k], biclusterScores.data[i], 1e-10);
+        } else {
+            std::cout << k << std::endl;
+        }
+    }
 }
 

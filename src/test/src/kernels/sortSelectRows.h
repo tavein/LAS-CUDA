@@ -122,7 +122,7 @@ protected:
 
 TEST_F(SortSelectRows, Works)
 {
-    sortSelectRows(memory);
+    sortSelectRows(memory, memory.InvocationsPerBicluster);
     checkCudaErrors(cudaGetLastError());
 
     memory.deviceRowSet.copyTo(memory.rowSet);

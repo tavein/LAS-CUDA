@@ -5,14 +5,13 @@
 
 #include <random>
 
-TEST(MaxScore, WorksOn10Number)
-{
-    Matrix<double> scores(10, 1, MatrixLocation::Host);
+static void MaxScoreWordOnN(uint32_t N) {
+    Matrix<double> scores(N, 1, MatrixLocation::Host);
     scores.allocate();
 
     uint32_t max = -1;
     double maxScoreValue = -INFINITY;
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < N; i++)
     {
         scores.data[i] = 100 * UNIFORM_REAL(MT19937_GENERATOR);
 
@@ -23,7 +22,7 @@ TEST(MaxScore, WorksOn10Number)
         }
     }
 
-    Matrix<double> deviceScores(10, 1, MatrixLocation::Device);
+    Matrix<double> deviceScores(N, 1, MatrixLocation::Device);
     deviceScores.allocate();
     scores.copyTo(deviceScores);
 
@@ -32,62 +31,19 @@ TEST(MaxScore, WorksOn10Number)
 
     EXPECT_EQ(max, result.first);
     EXPECT_EQ(maxScoreValue, result.second);
+}
+
+TEST(MaxScore, WorksOn10Number)
+{
+    MaxScoreWordOnN(10);
 }
 
 TEST(MaxScore, WorksOn100Number)
 {
-    Matrix<double> scores(100, 1, MatrixLocation::Host);
-    scores.allocate();
-
-    uint32_t max = -1;
-    double maxScoreValue = -INFINITY;
-    for (int i = 0; i < 100; i++)
-    {
-        scores.data[i] = UNIFORM_REAL(MT19937_GENERATOR);
-
-        if (scores.data[i] > maxScoreValue)
-        {
-            maxScoreValue = scores.data[i];
-            max = i;
-        }
-    }
-
-    Matrix<double> deviceScores(100, 1, MatrixLocation::Device);
-    deviceScores.allocate();
-    scores.copyTo(deviceScores);
-
-    auto result = maxScore(deviceScores);
-    checkCudaErrors(cudaGetLastError());
-
-    EXPECT_EQ(max, result.first);
-    EXPECT_EQ(maxScoreValue, result.second);
+    MaxScoreWordOnN(100);
 }
 
 TEST(MaxScore, WorksOn837Number)
 {
-    Matrix<double> scores(837, 1, MatrixLocation::Host);
-    scores.allocate();
-
-    uint32_t max = -1;
-    double maxScoreValue = -INFINITY;
-    for (int i = 0; i < 837; i++)
-    {
-        scores.data[i] = UNIFORM_REAL(MT19937_GENERATOR);
-
-        if (scores.data[i] > maxScoreValue)
-        {
-            maxScoreValue = scores.data[i];
-            max = i;
-        }
-    }
-
-    Matrix<double> deviceScores(837, 1, MatrixLocation::Device);
-    deviceScores.allocate();
-    scores.copyTo(deviceScores);
-
-    auto result = maxScore(deviceScores);
-    checkCudaErrors(cudaGetLastError());
-
-    EXPECT_EQ(max, result.first);
-    EXPECT_EQ(maxScoreValue, result.second);
+    MaxScoreWordOnN(837);
 }

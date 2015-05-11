@@ -4,6 +4,7 @@
 #include <cuda_runtime.h>
 #include <cuda_profiler_api.h>
 
+#include "DebugOutput.h"
 #include "ErrorHandling.h"
 #include "LasException.h"
 #include "kernels/kernels.h"
@@ -15,7 +16,7 @@ LAS::LAS(int cudaDeviceId, cublasHandle_t cublasHandle, uint16_t maxBiclusters,
          uint16_t InvocationsPerBicluster, double scoreThreshold)
         : cudaDeviceId(cudaDeviceId), cublasHandle(cublasHandle),
           cublasCreated(false), maxBiclusters(maxBiclusters),
-          invocationsPerBicluster(InvocationsPerBicluster),
+          invocationsPerBicluster(InvocationsPerBicluster + (InvocationsPerBicluster % 2)),
           scoreThreshold(scoreThreshold), MT19937_GENERATOR(RANDOM_DEVICE()),
           UNIFORM_REAL(0.0f, 1.0f)
 {
@@ -41,7 +42,7 @@ uint32_t LAS::getInvocationsPerBicluster() const
 
 void LAS::setInvocationsPerBicluster(uint32_t invocationsPerBicluster)
 {
-    this->invocationsPerBicluster = invocationsPerBicluster;
+    this->invocationsPerBicluster = invocationsPerBicluster + (invocationsPerBicluster % 2);
 }
 
 uint16_t LAS::getMaxBiclusters() const
@@ -86,7 +87,6 @@ std::vector<Bicluster> LAS::run(const double* matrix, uint16_t width,
         firstStageSearch(memory);
 
         secondStageSearch(memory);
-
 
         // after second stage scores are written to first InvocationsPerBicluster elements of device sums matrix
         std::pair<uint32_t, double> maximum = maxScore(
@@ -295,66 +295,78 @@ void LAS::subtractAverage(LasInstanceMemory& memory, uint32_t bestBicluster,
                     1, memory.deviceMatrix.begin(), memory.deviceMatrix.height));
 }
 
+
 // search with constant bicluster size
 void LAS::firstStageSearch(LasInstanceMemory& memory)
 {
-    uint32_t changes;
+    uint32_t activeInvocations = invocationsPerBicluster;
+    uint32_t previousActiveInvocations;
 
-    checkCudaErrors(
-            cudaMemset(memory.deviceColumnChanges.begin(), 1,
-                    memory.deviceColumnChanges.size()));
-    do
+    while (activeInvocations > 0)
     {
-
         checkCudaErrors(
-                cublasDgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
-                        memory.deviceMatrix.height, invocationsPerBicluster, memory.deviceMatrix.width,
-                        &alpha,
-                        memory.deviceMatrix.begin(), memory.deviceMatrix.height,
-                        memory.deviceColumnSet.begin(), memory.deviceColumnSet.height,
-                        &beta,
-                        memory.deviceSums.begin(), memory.deviceMatrix.height ));
+                   cublasDgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
+                           memory.deviceMatrix.height, activeInvocations, memory.deviceMatrix.width,
+                           &alpha,
+                           memory.deviceMatrix.begin(), memory.deviceMatrix.height,
+                           memory.deviceColumnSet.begin(), memory.deviceColumnSet.height,
+                           &beta,
+                           memory.deviceSums.begin(), memory.deviceMatrix.height ));
 
         checkCudaErrors(
                 cudaMemset(memory.deviceRowChanges.begin(), 0,
                         memory.deviceRowChanges.size()));
 
-        sortSelectRows(memory);
+        sortSelectRows(memory, activeInvocations);
+
+        previousActiveInvocations = activeInvocations;
+        activeInvocations = sortSelectActiveInvocations(memory.deviceRowChanges,
+                memory.deviceInvocationsPermutation, activeInvocations);
+
+        if (activeInvocations == 0) break;
+
+        reorderRowSets(memory, previousActiveInvocations);
+        reorderColumnSets(memory, previousActiveInvocations);
+        reorderSizesAndScores(memory, previousActiveInvocations);
 
         checkCudaErrors(
                 cublasDgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
-                        invocationsPerBicluster, memory.deviceMatrix.width, memory.deviceMatrix.height,
+                        activeInvocations, memory.deviceMatrix.width, memory.deviceMatrix.height,
                         &alpha,
                         memory.deviceRowSet.begin(), invocationsPerBicluster,
                         memory.deviceMatrix.begin(), memory.deviceMatrix.height,
                         &beta,
-                        memory.deviceSums.begin(), invocationsPerBicluster ));
+                        memory.deviceSums.begin(), activeInvocations ));
 
         checkCudaErrors(
                 cudaMemset(memory.deviceColumnChanges.begin(), 0,
                         memory.deviceColumnChanges.size()));
 
-        sortSelectColumns(memory);
+        sortSelectColumns(memory, activeInvocations);
 
-        changes = reduceChanges(memory.deviceColumnChanges);
+        previousActiveInvocations = activeInvocations;
+        activeInvocations = sortSelectActiveInvocations(memory.deviceColumnChanges,
+                memory.deviceInvocationsPermutation, activeInvocations);
 
-    } while (changes > 0);
+        if (activeInvocations == 0) break;
+
+        reorderRowSets(memory, previousActiveInvocations);
+        reorderColumnSets(memory, previousActiveInvocations);
+        reorderSizesAndScores(memory, previousActiveInvocations);
+    }
+
 }
 
 void LAS::secondStageSearch(LasInstanceMemory& memory)
 {
+    uint32_t activeInvocations = invocationsPerBicluster;
+    uint32_t previousActiveInvocations;
 
-    uint32_t changes = 0;
-
-    checkCudaErrors(
-            cudaMemset(memory.deviceColumnChanges.begin(), 1,
-                    memory.deviceColumnChanges.size()));
-
-    do
+    while (activeInvocations > 0)
     {
         checkCudaErrors(
                 cublasDgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
-                        memory.deviceMatrix.height, invocationsPerBicluster, memory.deviceMatrix.width,
+                        memory.deviceMatrix.height, activeInvocations, memory.deviceMatrix.width,
                         &alpha,
                         memory.deviceMatrix.begin(), memory.deviceMatrix.height,
                         memory.deviceColumnSet.begin(), memory.deviceColumnSet.height,
@@ -365,25 +377,43 @@ void LAS::secondStageSearch(LasInstanceMemory& memory)
                 cudaMemset(memory.deviceRowChanges.begin(), 0,
                         memory.deviceRowChanges.size()));
 
-        sortSelectHeightAndRows(memory);
+        sortSelectHeightAndRows(memory, activeInvocations);
+
+        previousActiveInvocations = activeInvocations;
+        activeInvocations = sortSelectActiveInvocations(memory.deviceRowChanges,
+                memory.deviceInvocationsPermutation, activeInvocations);
+
+        if (activeInvocations == 0) break;
+
+        reorderRowSets(memory, previousActiveInvocations);
+        reorderColumnSets(memory, previousActiveInvocations);
+        reorderSizesAndScores(memory, previousActiveInvocations);
 
         checkCudaErrors(
                 cublasDgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
-                        invocationsPerBicluster, memory.deviceMatrix.width, memory.deviceMatrix.height,
+                        activeInvocations, memory.deviceMatrix.width, memory.deviceMatrix.height,
                         &alpha,
                         memory.deviceRowSet.begin(), invocationsPerBicluster,
                         memory.deviceMatrix.begin(), memory.deviceMatrix.height,
                         &beta,
-                        memory.deviceSums.begin(), invocationsPerBicluster ));
+                        memory.deviceSums.begin(), activeInvocations));
 
         checkCudaErrors(
                 cudaMemset(memory.deviceColumnChanges.begin(), 0,
                         memory.deviceColumnChanges.size()));
 
-        sortSelectWidthAndColumns(memory);
+        sortSelectWidthAndColumns(memory, activeInvocations);
 
-        changes = reduceChanges(memory.deviceColumnChanges);
+        previousActiveInvocations = activeInvocations;
+        activeInvocations = sortSelectActiveInvocations(memory.deviceColumnChanges,
+                memory.deviceInvocationsPermutation, activeInvocations);
 
-    } while (changes > 0);
+        if (activeInvocations == 0) break;
+
+        reorderRowSets(memory, previousActiveInvocations);
+        reorderColumnSets(memory, previousActiveInvocations);
+        reorderSizesAndScores(memory, previousActiveInvocations);
+
+    }
 
 }

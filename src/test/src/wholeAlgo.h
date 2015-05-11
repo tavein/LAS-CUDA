@@ -204,7 +204,6 @@ protected:
 TEST_F(WholeAlgo, Works)
 {
     auto result = run(matrix, MatrixSize.first, MatrixSize.second);
-
     checkCudaErrors(cudaGetLastError());
 
     EXPECT_EQ(result.size(), goldNumberOfFoundBiclusters);

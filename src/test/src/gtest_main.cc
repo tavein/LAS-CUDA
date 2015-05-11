@@ -6,17 +6,21 @@
 static std::random_device RANDOM_DEVICE;
 static std::mt19937 MT19937_GENERATOR(RANDOM_DEVICE());
 static std::uniform_real_distribution<> UNIFORM_REAL(0.0f, 1.0f);
+static std::uniform_int_distribution<> UNIFORM_INT(0, 23);
 
-/* * /
+/* */
+#include "kernels/reorderRowSets.h"
 #include "kernels/sortSelectColumns.h"
 #include "kernels/sortSelectHeightAndRows.h"
 #include "kernels/sortSelectRows.h"
 #include "kernels/sortSelectWidthAndColumns.h"
-#include "kernels/sumChanges.h"
 #include "kernels/maxScore.h"
+#include "kernels/sortSelectActiveInvocations.h"
 #include "utilities.h"
-#include "secondStage.h"
+
+
 #include "firstStage.h"
+#include "secondStage.h"
 /* */
 #include "wholeAlgo.h"
 

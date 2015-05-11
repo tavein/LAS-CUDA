@@ -145,10 +145,11 @@
 								</option>
 								<option id="nvcc.compiler.cpp11option.1877958466" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
 								<option id="nvcc.compiler.option.level.263099857" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
-								<option id="nvcc.compiler.optimization.level.319400315" name="Optimization Level" superClass="nvcc.compiler.optimization.level" value="nvcc.compiler.optimization.level.none" valueType="enumerated"/>
+								<option id="nvcc.compiler.optimization.level.319400315" name="Optimization Level" superClass="nvcc.compiler.optimization.level" value="nvcc.compiler.optimization.level.most" valueType="enumerated"/>
 								<option id="nvcc.compiler.include.paths.910004467" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/opt/cuda/include"/>
 								</option>
+								<option id="nvcc.compiler.disableWarnings.1717070163" name="Inhibit all warning messages (-w)" superClass="nvcc.compiler.disableWarnings" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.1913347964" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.916015596" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.2039647899" superClass="nvcc.compiler.input.c"/>

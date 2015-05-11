@@ -160,7 +160,7 @@ protected:
 
 TEST_F(SortSelectWidthAndColumns, Works)
 {
-    sortSelectWidthAndColumns(memory);
+    sortSelectWidthAndColumns(memory, memory.InvocationsPerBicluster);
     checkCudaErrors(cudaGetLastError());
 
     memory.deviceColumnSet.copyTo(memory.columnSet);

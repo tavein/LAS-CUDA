@@ -143,7 +143,7 @@ protected:
 
 TEST_F(SortSelectHeightAndRows, Works)
 {
-    sortSelectHeightAndRows(this->memory);
+    sortSelectHeightAndRows(memory, memory.InvocationsPerBicluster);
     checkCudaErrors(cudaGetLastError());
 
     memory.deviceRowSet.copyTo(memory.rowSet);

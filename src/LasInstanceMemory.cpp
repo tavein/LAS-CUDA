@@ -48,7 +48,8 @@ LasInstanceMemory::LasInstanceMemory(const double* matrix,
           deviceLgamma(MaxDimension + 2, 1, MatrixLocation::Device),
 
           deviceColumnChanges(InvocationsPerBicluster, 1, MatrixLocation::Device),
-          deviceRowChanges(InvocationsPerBicluster, 1, MatrixLocation::Device)
+          deviceRowChanges(InvocationsPerBicluster, 1, MatrixLocation::Device),
+          deviceInvocationsPermutation(InvocationsPerBicluster, 1, MatrixLocation::Device)
 {
     // copying matrix
     this->matrix.allocate();
@@ -94,6 +95,8 @@ void LasInstanceMemory::init()
     deviceMemory.ColumnChanges = deviceColumnChanges.data;
     deviceRowChanges.allocate();
     deviceMemory.RowChanges = deviceRowChanges.data;
+
+    deviceInvocationsPermutation.allocate();
 
     checkCudaErrors(cudaMemset(deviceRowSet.data, 0, deviceRowSet.size()));
 

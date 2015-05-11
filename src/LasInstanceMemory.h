@@ -80,6 +80,8 @@ struct LasInstanceMemory
     Matrix<uint32_t> deviceColumnChanges;
     Matrix<uint32_t> deviceRowChanges;
 
+    Matrix<uint16_t> deviceInvocationsPermutation;
+
     DeviceMemory deviceMemory;
 };
 

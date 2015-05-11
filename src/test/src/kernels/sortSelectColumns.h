@@ -123,7 +123,7 @@ protected:
 
 TEST_F(SortSelectColumns, Works)
 {
-    sortSelectColumns(memory);
+    sortSelectColumns(memory, memory.InvocationsPerBicluster);
     //checkCudaErrors(cudaDeviceSynchronize());
     checkCudaErrors(cudaGetLastError());
 
